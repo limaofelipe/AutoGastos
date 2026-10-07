@@ -1,0 +1,100 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    match /test/{testId} {
+      allow get: if true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['id', 'email', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'email', 'displayName', 'photoURL', 'currency', 'createdAt', 'updatedAt'])
+        && data.id is string && data.id.size() <= 128
+        && data.email is string && data.email.size() <= 256
+        && (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 100))
+        && (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 500))
+        && (!('currency' in data) || (data.currency is string && data.currency.size() <= 10));
+    }
+
+    function isValidVehicle(data) {
+      return data.keys().hasAll(['id', 'userId', 'name', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'userId', 'name', 'plate', 'year', 'initialKm', 'currentKm', 'fuelType', 'createdAt', 'updatedAt'])
+        && data.id is string && data.id.size() <= 128
+        && data.userId is string && data.userId.size() <= 128
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && (!('plate' in data) || (data.plate is string && data.plate.size() <= 20))
+        && (!('year' in data) || (data.year is number && data.year >= 1900 && data.year <= 2100))
+        && (!('initialKm' in data) || (data.initialKm is number && data.initialKm >= 0))
+        && (!('currentKm' in data) || (data.currentKm is number && data.currentKm >= 0))
+        && (!('fuelType' in data) || (data.fuelType is string && data.fuelType.size() <= 50));
+    }
+
+    function isValidExpense(data) {
+      return data.keys().hasAll(['id', 'userId', 'date', 'year', 'month', 'category', 'title', 'amount', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'userId', 'vehicleId', 'date', 'year', 'month', 'category', 'title', 'amount', 'odometerKm', 'paymentMethod', 'location', 'notes', 'liters', 'pricePerLiter', 'createdAt', 'updatedAt'])
+        && data.id is string && data.id.size() <= 128
+        && data.userId is string && data.userId.size() <= 128
+        && (!('vehicleId' in data) || (data.vehicleId is string && data.vehicleId.size() <= 128))
+        && data.date is string && data.date.size() <= 30
+        && data.year is number && data.year >= 1990 && data.year <= 2100
+        && data.month is number && data.month >= 1 && data.month <= 12
+        && data.category is string && data.category.size() <= 50
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 200
+        && data.amount is number && data.amount > 0
+        && (!('odometerKm' in data) || (data.odometerKm is number && data.odometerKm >= 0))
+        && (!('paymentMethod' in data) || (data.paymentMethod is string && data.paymentMethod.size() <= 50))
+        && (!('location' in data) || (data.location is string && data.location.size() <= 150))
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 1000))
+        && (!('liters' in data) || (data.liters is number && data.liters >= 0))
+        && (!('pricePerLiter' in data) || (data.pricePerLiter is number && data.pricePerLiter >= 0));
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUserProfile(incoming());
+      allow update: if isOwner(userId) && isValidUserProfile(incoming()) && incoming().id == existing().id;
+      allow delete: if isOwner(userId);
+    }
+
+    match /vehicles/{vehicleId} {
+      allow get: if isSignedIn() && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(vehicleId) && isValidVehicle(incoming()) && incoming().userId == request.auth.uid;
+      allow update: if isSignedIn() && isValidId(vehicleId) && existing().userId == request.auth.uid && incoming().userId == existing().userId && incoming().id == existing().id && isValidVehicle(incoming());
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    match /expenses/{expenseId} {
+      allow get: if isSignedIn() && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(expenseId) && isValidExpense(incoming()) && incoming().userId == request.auth.uid;
+      allow update: if isSignedIn() && isValidId(expenseId) && existing().userId == request.auth.uid && incoming().userId == existing().userId && incoming().id == existing().id && isValidExpense(incoming());
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+  }
+}

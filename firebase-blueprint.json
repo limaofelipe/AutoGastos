@@ -1,0 +1,76 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Perfil do usuário proprietário dos veículos e despesas",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 256 },
+        "displayName": { "type": "string", "maxLength": 100 },
+        "photoURL": { "type": "string", "maxLength": 500 },
+        "currency": { "type": "string", "maxLength": 10 },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "email", "createdAt", "updatedAt"]
+    },
+    "Vehicle": {
+      "title": "Vehicle",
+      "description": "Dados do veículo cadastrado pelo usuário",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100 },
+        "plate": { "type": "string", "maxLength": 20 },
+        "year": { "type": "number" },
+        "initialKm": { "type": "number" },
+        "currentKm": { "type": "number" },
+        "fuelType": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "userId", "name", "createdAt", "updatedAt"]
+    },
+    "Expense": {
+      "title": "Expense",
+      "description": "Registro de gasto do veículo (combustível, mecânica, reparo, IPVA, etc)",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "vehicleId": { "type": "string", "maxLength": 128 },
+        "date": { "type": "string", "maxLength": 30 },
+        "year": { "type": "number" },
+        "month": { "type": "number" },
+        "category": { "type": "string", "maxLength": 50 },
+        "title": { "type": "string", "maxLength": 200 },
+        "amount": { "type": "number" },
+        "odometerKm": { "type": "number" },
+        "paymentMethod": { "type": "string", "maxLength": 50 },
+        "location": { "type": "string", "maxLength": 150 },
+        "notes": { "type": "string", "maxLength": 1000 },
+        "liters": { "type": "number" },
+        "pricePerLiter": { "type": "number" },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "userId", "date", "year", "month", "category", "title", "amount", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Documentos de perfis de usuários com id igual ao uid de autenticação"
+    },
+    "/vehicles/{vehicleId}": {
+      "schema": "Vehicle",
+      "description": "Veículos pertencentes ao usuário autenticado"
+    },
+    "/expenses/{expenseId}": {
+      "schema": "Expense",
+      "description": "Despesas veiculares do usuário autenticado"
+    }
+  }
+}

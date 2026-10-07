@@ -1,0 +1,6 @@
+{
+  "name": "AutoGastos - Controle de Gastos Veiculares",
+  "description": "Aplicativo completo para registrar e acompanhar gastos com veículo: mecânica, combustível, reparos, IPVA e dashboard anual com gráficos detalhados.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
