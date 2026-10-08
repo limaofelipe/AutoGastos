@@ -108,6 +108,10 @@ export default function App() {
       updatedAt: now,
     };
 
+    if (!fullExpense.vehicleId || fullExpense.vehicleId === 'all') {
+      delete fullExpense.vehicleId;
+    }
+
     await saveExpense(fullExpense);
 
     // If odometer informed and matches a vehicle, update vehicle currentKm if higher

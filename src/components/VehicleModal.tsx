@@ -25,6 +25,7 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
   const [fuelType, setFuelType] = useState('Flex (Gasolina / Etanol)');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{ name?: string; year?: string; currentKm?: string }>({});
 
   if (!isOpen) return null;
 
@@ -36,6 +37,7 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
     setCurrentKm(v.currentKm ? v.currentKm.toString() : '');
     setFuelType(v.fuelType || 'Flex (Gasolina / Etanol)');
     setError(null);
+    setFieldErrors({});
   };
 
   const handleResetForm = () => {
@@ -46,14 +48,36 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
     setCurrentKm('');
     setFuelType('Flex (Gasolina / Etanol)');
     setError(null);
+    setFieldErrors({});
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    const newFieldErrors: { name?: string; year?: string; currentKm?: string } = {};
 
     if (!name.trim()) {
-      setError('Por favor informe o modelo ou nome do veículo.');
+      newFieldErrors.name = 'Campo obrigatório: informe o modelo ou nome do carro (ex: Honda Civic, Fiat Argo).';
+    }
+
+    if (year.trim()) {
+      const parsedYear = parseInt(year, 10);
+      if (isNaN(parsedYear) || parsedYear < 1900 || parsedYear > 2100) {
+        newFieldErrors.year = 'Informe um ano de fabricação válido (1900 a 2100).';
+      }
+    }
+
+    if (currentKm.trim()) {
+      const parsedKm = parseInt(currentKm, 10);
+      if (isNaN(parsedKm) || parsedKm < 0) {
+        newFieldErrors.currentKm = 'A quilometragem não pode ser negativa.';
+      }
+    }
+
+    setFieldErrors(newFieldErrors);
+
+    if (Object.keys(newFieldErrors).length > 0) {
+      setError('Por favor, corrija os campos sinalizados em vermelho abaixo.');
       return;
     }
 
@@ -63,16 +87,16 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
         {
           name: name.trim(),
           plate: plate.trim() || undefined,
-          year: year ? parseInt(year, 10) : undefined,
-          currentKm: currentKm ? parseInt(currentKm, 10) : undefined,
+          year: year.trim() ? parseInt(year, 10) : undefined,
+          currentKm: currentKm.trim() ? parseInt(currentKm, 10) : undefined,
           fuelType,
         },
         editingId || undefined
       );
       handleResetForm();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error saving vehicle:', err);
-      setError('Falha ao salvar veículo. Verifique os dados.');
+      setError(`Falha ao salvar veículo: ${err?.message || 'Verifique os dados.'}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -198,23 +222,43 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
             )}
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
-                Modelo / Nome do Carro <span className="text-rose-400">*</span>
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                  <span>Modelo / Nome do Carro</span>
+                  <span className="text-rose-400 font-bold">*</span>
+                  {fieldErrors.name && (
+                    <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                      Obrigatório em branco
+                    </span>
+                  )}
+                </label>
+              </div>
               <input
                 type="text"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  if (fieldErrors.name) setFieldErrors((prev) => ({ ...prev, name: undefined }));
+                }}
                 placeholder="Ex: Honda Civic 2.0 EXL ou Fiat Argo 1.0"
-                className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-amber-500"
-                required
+                className={`w-full px-3 py-2 rounded-lg bg-slate-900 text-white text-xs transition-all focus:outline-none ${
+                  fieldErrors.name
+                    ? 'border-2 border-rose-500 ring-2 ring-rose-500/30 bg-rose-500/5'
+                    : 'border border-slate-700 focus:border-amber-500'
+                }`}
               />
+              {fieldErrors.name && (
+                <p className="mt-1 text-[11px] text-rose-400 font-medium flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span>{fieldErrors.name}</span>
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Placa
+                  Placa (Opcional)
                 </label>
                 <input
                   type="text"
@@ -235,10 +279,18 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
                   min="1950"
                   max="2035"
                   value={year}
-                  onChange={(e) => setYear(e.target.value)}
+                  onChange={(e) => {
+                    setYear(e.target.value);
+                    if (fieldErrors.year) setFieldErrors((prev) => ({ ...prev, year: undefined }));
+                  }}
                   placeholder="Ex: 2022"
-                  className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-amber-500"
+                  className={`w-full px-3 py-2 rounded-lg bg-slate-900 text-white text-xs focus:outline-none ${
+                    fieldErrors.year ? 'border-2 border-rose-500 ring-1 ring-rose-500' : 'border border-slate-700 focus:border-amber-500'
+                  }`}
                 />
+                {fieldErrors.year && (
+                  <p className="mt-1 text-[10px] text-rose-400">{fieldErrors.year}</p>
+                )}
               </div>
             </div>
 
@@ -251,10 +303,18 @@ export const VehicleModal: React.FC<VehicleModalProps> = ({
                   type="number"
                   min="0"
                   value={currentKm}
-                  onChange={(e) => setCurrentKm(e.target.value)}
+                  onChange={(e) => {
+                    setCurrentKm(e.target.value);
+                    if (fieldErrors.currentKm) setFieldErrors((prev) => ({ ...prev, currentKm: undefined }));
+                  }}
                   placeholder="Ex: 45000"
-                  className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-amber-500"
+                  className={`w-full px-3 py-2 rounded-lg bg-slate-900 text-white text-xs focus:outline-none ${
+                    fieldErrors.currentKm ? 'border-2 border-rose-500 ring-1 ring-rose-500' : 'border border-slate-700 focus:border-amber-500'
+                  }`}
                 />
+                {fieldErrors.currentKm && (
+                  <p className="mt-1 text-[10px] text-rose-400">{fieldErrors.currentKm}</p>
+                )}
               </div>
 
               <div>

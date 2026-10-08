@@ -1,9 +1,21 @@
-import React from 'react';
-import { Fuel, Wrench, BarChart3, ShieldCheck, Car, Calendar, ArrowRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { Fuel, Wrench, BarChart3, ShieldCheck, Car, Calendar, ArrowRight, ExternalLink, Copy, Check, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export const LoginScreen: React.FC = () => {
-  const { signInWithGoogle, error } = useAuth();
+  const { signInWithGoogle, error, isUnauthorizedDomain, clearError } = useAuth();
+  const [copied, setCopied] = useState(false);
+
+  const currentDomain = typeof window !== 'undefined' ? window.location.hostname : '';
+  const firebaseSettingsUrl = 'https://console.firebase.google.com/project/omega-period-kkhlb/authentication/settings';
+
+  const handleCopyDomain = () => {
+    if (navigator.clipboard && currentDomain) {
+      navigator.clipboard.writeText(currentDomain);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 3000);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between selection:bg-amber-500/30 selection:text-amber-200">
@@ -48,8 +60,57 @@ export const LoginScreen: React.FC = () => {
           </p>
 
           {error && (
-            <div className="p-3.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-300 text-sm">
-              {error}
+            <div className="p-4 rounded-xl bg-slate-900 border border-amber-500/30 text-slate-200 text-xs space-y-3 shadow-xl">
+              <div className="flex items-start gap-2.5">
+                <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <h4 className="font-bold text-white text-sm">
+                    {isUnauthorizedDomain ? 'Domínio precisa ser autorizado no Firebase' : 'Erro ao realizar login'}
+                  </h4>
+                  <p className="text-slate-300 text-xs leading-relaxed">
+                    {isUnauthorizedDomain
+                      ? 'O Firebase Authentication exige que domínios externos estejam na lista de "Domínios autorizados" para permitir login com Google.'
+                      : error}
+                  </p>
+                </div>
+              </div>
+
+              {isUnauthorizedDomain && (
+                <div className="pt-2 border-t border-slate-800 space-y-3">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                    <div className="flex-1 px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 font-mono text-[11px] text-amber-300 truncate">
+                      {currentDomain}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCopyDomain}
+                      className="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer flex-shrink-0"
+                    >
+                      {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copied ? 'Copiado!' : 'Copiar Domínio'}</span>
+                    </button>
+                  </div>
+
+                  <div className="text-[11px] text-slate-400 space-y-1 pl-1">
+                    <p><strong>Como resolver em 30 segundos:</strong></p>
+                    <p>1. Clique no botão abaixo para abrir as configurações do Firebase.</p>
+                    <p>2. Na seção <strong>"Domínios autorizados"</strong>, clique em <strong>"Adicionar domínio"</strong>.</p>
+                    <p>3. Cole <code className="text-amber-300 font-mono">{currentDomain}</code> e clique em <strong>Salvar</strong>.</p>
+                  </div>
+
+                  <div className="pt-1 flex items-center gap-2">
+                    <a
+                      href={firebaseSettingsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold transition-all shadow-md shadow-amber-500/20 cursor-pointer"
+                    >
+                      <span>Abrir Configurações do Firebase</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

@@ -6,3 +6,11 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Firebase & Secret Configuration
+firebase-applet-config.json
+firebase-applet-config*.local.json
+serviceAccountKey*.json
+*.pem
+*.key
+credentials*.json

@@ -72,11 +72,22 @@ export const subscribeToVehicles = (
   );
 };
 
+function sanitizeForFirestore<T extends Record<string, any>>(data: T): Record<string, any> {
+  const clean: Record<string, any> = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (value !== undefined) {
+      clean[key] = value;
+    }
+  }
+  return clean;
+}
+
 export const saveVehicle = async (vehicle: Vehicle): Promise<void> => {
   const path = `vehicles/${vehicle.id}`;
   try {
     const docRef = doc(db, 'vehicles', vehicle.id);
-    await setDoc(docRef, vehicle, { merge: true });
+    const cleanVehicle = sanitizeForFirestore(vehicle);
+    await setDoc(docRef, cleanVehicle, { merge: true });
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
@@ -96,7 +107,8 @@ export const saveExpense = async (expense: Expense): Promise<void> => {
   const path = `expenses/${expense.id}`;
   try {
     const docRef = doc(db, 'expenses', expense.id);
-    await setDoc(docRef, expense, { merge: true });
+    const cleanExpense = sanitizeForFirestore(expense);
+    await setDoc(docRef, cleanExpense, { merge: true });
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }

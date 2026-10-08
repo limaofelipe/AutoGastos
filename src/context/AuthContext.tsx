@@ -9,8 +9,10 @@ interface AuthContextType {
   profile: UserProfile | null;
   loading: boolean;
   error: string | null;
+  isUnauthorizedDomain: boolean;
   signInWithGoogle: () => Promise<void>;
   signOutUser: () => Promise<void>;
+  clearError: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -20,6 +22,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isUnauthorizedDomain, setIsUnauthorizedDomain] = useState(false);
 
   useEffect(() => {
     // Run connection test on init
@@ -63,16 +66,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signInWithGoogle = async () => {
     try {
       setError(null);
+      setIsUnauthorizedDomain(false);
       await signInWithPopup(auth, googleProvider);
     } catch (err: any) {
       console.error('Login error:', err);
-      setError(err?.message || 'Falha ao realizar login com Google.');
+      const isUnauth = err?.code === 'auth/unauthorized-domain' || err?.message?.includes('unauthorized-domain');
+      setIsUnauthorizedDomain(Boolean(isUnauth));
+      if (isUnauth) {
+        setError('O domínio deste app não está autorizado no Firebase Authentication.');
+      } else {
+        setError(err?.message || 'Falha ao realizar login com Google.');
+      }
     }
+  };
+
+  const clearError = () => {
+    setError(null);
+    setIsUnauthorizedDomain(false);
   };
 
   const signOutUser = async () => {
     try {
       setError(null);
+      setIsUnauthorizedDomain(false);
       await signOut(auth);
     } catch (err: any) {
       console.error('Logout error:', err);
@@ -81,7 +97,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, error, signInWithGoogle, signOutUser }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        profile,
+        loading,
+        error,
+        isUnauthorizedDomain,
+        signInWithGoogle,
+        signOutUser,
+        clearError,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
